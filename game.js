@@ -11,6 +11,24 @@ function getViewportSize() {
     };
 }
 
+function createWord(x, y) {
+    const word = {
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 3, // Initial velocity
+        vy: (Math.random() - 0.5) * 3,
+        element: document.createElement('div')
+    };
+
+    word.element.className = 'word';
+    word.element.textContent = 'polinochka';
+    word.element.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+    word.element.style.fontSize = `${20 + Math.random() * 30}px`;
+    
+    document.body.appendChild(word.element);
+    return word;
+}
+
 function initGame() {
     // Clear existing words
     words.forEach(word => {
@@ -21,7 +39,9 @@ function initGame() {
     words = [];
 
     const viewport = getViewportSize();
-    const positions = [
+    
+    // Create words at different positions
+    const wordPositions = [
         { x: viewport.width * 0.2, y: viewport.height * 0.2 },
         { x: viewport.width * 0.8, y: viewport.height * 0.2 },
         { x: viewport.width * 0.2, y: viewport.height * 0.8 },
@@ -30,22 +50,8 @@ function initGame() {
         { x: viewport.width * 0.5, y: viewport.height * 0.7 }
     ];
 
-    positions.forEach((pos) => {
-        const word = {
-            x: pos.x,
-            y: pos.y,
-            // Give each word a random initial velocity
-            vx: (Math.random() - 0.5) * 5,
-            vy: (Math.random() - 0.5) * 5,
-            element: document.createElement('div')
-        };
-
-        word.element.className = 'word';
-        word.element.textContent = 'polinochka';
-        word.element.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        word.element.style.fontSize = `${20 + Math.random() * 30}px`;
-        
-        document.body.appendChild(word.element);
+    wordPositions.forEach(pos => {
+        const word = createWord(pos.x, pos.y);
         words.push(word);
     });
 
@@ -106,6 +112,7 @@ async function startFaceDetection() {
             faceapi.nets.faceLandmark68Net.load('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/face_landmark_68_model-weights_manifest.json')
         ]);
 
+        const nosePoint = document.getElementById('nosePoint');
         debug.textContent = "Face detection loaded successfully!";
         
         setInterval(async () => {
@@ -116,8 +123,14 @@ async function startFaceDetection() {
             
             if (detections && detections[0]) {
                 const nose = detections[0].landmarks.getNose()[0];
-                const viewport = getViewportSize();
+                // Update nose point position
+                nosePoint.style.display = 'block';
+                nosePoint.style.left = `${nose._x}px`;
+                nosePoint.style.top = `${nose._y}px`;
+                
                 checkCollisions(nose._x, nose._y);
+            } else {
+                nosePoint.style.display = 'none';
             }
         }, 100);
     } catch (err) {
@@ -132,13 +145,22 @@ function checkCollisions(noseX, noseY) {
         const dy = word.y - noseY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 100) { // Increased collision radius
+        if (distance < 150) { // Collision radius
             // Bounce away from nose
             const angle = Math.atan2(dy, dx);
-            const force = 10; // Increased bounce force
+            const force = 8;
+            const impactFactor = 1 - (distance / 150); // Closer hits have more effect
             
-            word.vx = Math.cos(angle) * force;
-            word.vy = Math.sin(angle) * force;
+            word.vx = (Math.cos(angle) * force * impactFactor) + word.vx * 0.5;
+            word.vy = (Math.sin(angle) * force * impactFactor) + word.vy * 0.5;
+
+            // Limit maximum speed
+            const maxSpeed = 15;
+            const currentSpeed = Math.sqrt(word.vx * word.vx + word.vy * word.vy);
+            if (currentSpeed > maxSpeed) {
+                word.vx = (word.vx / currentSpeed) * maxSpeed;
+                word.vy = (word.vy / currentSpeed) * maxSpeed;
+            }
         }
     });
 }

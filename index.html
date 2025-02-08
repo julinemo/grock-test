@@ -65,11 +65,24 @@
             color: white;
             z-index: 30;
         }
+
+        #nosePoint {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2000;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
     </style>
 </head>
 <body>
     <video id="video" playsinline autoplay muted></video>
     <button id="startButton">Start Game</button>
     <div id="debug"></div>
+    <div id="nosePoint"></div>
 </body>
 </html>
