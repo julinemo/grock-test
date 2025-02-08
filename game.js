@@ -1,13 +1,11 @@
-let video = document.getElementById('video');
 let words = [];
 let isPlaying = false;
 const startButton = document.getElementById('startButton');
-const debug = document.getElementById('debug');
 
 function getViewportSize() {
     return {
-        width: Math.min(window.innerWidth, document.documentElement.clientWidth),
-        height: Math.min(window.innerHeight, document.documentElement.clientHeight)
+        width: window.innerWidth,
+        height: window.innerHeight
     };
 }
 
@@ -15,8 +13,8 @@ function createWord(x, y) {
     const word = {
         x: x,
         y: y,
-        vx: (Math.random() - 0.5) * 3, // Initial velocity
-        vy: (Math.random() - 0.5) * 3,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
         element: document.createElement('div')
     };
 
@@ -30,42 +28,23 @@ function createWord(x, y) {
 }
 
 function initGame() {
-    // Clear existing words
-    words.forEach(word => {
-        if (word.element.parentNode) {
-            word.element.parentNode.removeChild(word.element);
-        }
-    });
-    words = [];
-
     const viewport = getViewportSize();
     
-    // Create words at different positions
-    const wordPositions = [
-        { x: viewport.width * 0.2, y: viewport.height * 0.2 },
-        { x: viewport.width * 0.8, y: viewport.height * 0.2 },
-        { x: viewport.width * 0.2, y: viewport.height * 0.8 },
-        { x: viewport.width * 0.8, y: viewport.height * 0.8 },
-        { x: viewport.width * 0.5, y: viewport.height * 0.3 },
-        { x: viewport.width * 0.5, y: viewport.height * 0.7 }
-    ];
-
-    wordPositions.forEach(pos => {
-        const word = createWord(pos.x, pos.y);
+    // Create 6 words in different positions
+    for (let i = 0; i < 6; i++) {
+        const x = Math.random() * (viewport.width - 100);
+        const y = Math.random() * (viewport.height - 100);
+        const word = createWord(x, y);
         words.push(word);
-    });
-
-    // Start the animation
-    requestAnimationFrame(moveWords);
+    }
 }
 
-function moveWords(timestamp) {
+function moveWords() {
     if (!isPlaying) return;
 
     const viewport = getViewportSize();
     
     words.forEach(word => {
-        // Update position based on velocity
         word.x += word.vx;
         word.y += word.vy;
 
@@ -79,97 +58,54 @@ function moveWords(timestamp) {
             word.y = Math.max(0, Math.min(word.y, viewport.height - 100));
         }
 
-        // Apply the new position
+        // Apply some friction
+        word.vx *= 0.99;
+        word.vy *= 0.99;
+
+        // Ensure minimum speed
+        const minSpeed = 0.5;
+        const speed = Math.sqrt(word.vx * word.vx + word.vy * word.vy);
+        if (speed < minSpeed) {
+            word.vx *= minSpeed / speed;
+            word.vy *= minSpeed / speed;
+        }
+
         word.element.style.transform = `translate(${word.x}px, ${word.y}px)`;
     });
 
     requestAnimationFrame(moveWords);
 }
 
-startButton.addEventListener('click', async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: 'user',
-                width: { ideal: window.innerWidth },
-                height: { ideal: window.innerHeight }
-            } 
-        });
-        video.srcObject = stream;
-        startButton.style.display = 'none';
-        isPlaying = true;
-        initGame();
-        startFaceDetection();
-    } catch (err) {
-        debug.textContent = "Error accessing camera: " + err.message;
-    }
-});
+function handleTouch(event) {
+    event.preventDefault();
+    
+    Array.from(event.touches).forEach(touch => {
+        const touchX = touch.clientX;
+        const touchY = touch.clientY;
 
-async function startFaceDetection() {
-    try {
-        await Promise.all([
-            faceapi.nets.tinyFaceDetector.load('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/tiny_face_detector_model-weights_manifest.json'),
-            faceapi.nets.faceLandmark68Net.load('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/face_landmark_68_model-weights_manifest.json')
-        ]);
+        words.forEach(word => {
+            const dx = word.x - touchX;
+            const dy = word.y - touchY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-        const nosePoint = document.getElementById('nosePoint');
-        debug.textContent = "Face detection loaded successfully!";
-        
-        setInterval(async () => {
-            if (!isPlaying) return;
-            
-            const detections = await faceapi.detectAllFaces(video, 
-                new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-            
-            if (detections && detections[0]) {
-                const nose = detections[0].landmarks.getNose()[0];
-                // Update nose point position
-                nosePoint.style.display = 'block';
-                nosePoint.style.left = `${nose._x}px`;
-                nosePoint.style.top = `${nose._y}px`;
+            if (distance < 150) {
+                const angle = Math.atan2(dy, dx);
+                const force = 15;
+                const impactFactor = 1 - (distance / 150);
                 
-                checkCollisions(nose._x, nose._y);
-            } else {
-                nosePoint.style.display = 'none';
+                word.vx = Math.cos(angle) * force * impactFactor;
+                word.vy = Math.sin(angle) * force * impactFactor;
             }
-        }, 100);
-    } catch (err) {
-        debug.textContent = "Error loading face detection: " + err.message;
-        console.error(err);
-    }
-}
-
-function checkCollisions(noseX, noseY) {
-    words.forEach(word => {
-        const dx = word.x - noseX;
-        const dy = word.y - noseY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 150) { // Collision radius
-            // Bounce away from nose
-            const angle = Math.atan2(dy, dx);
-            const force = 8;
-            const impactFactor = 1 - (distance / 150); // Closer hits have more effect
-            
-            word.vx = (Math.cos(angle) * force * impactFactor) + word.vx * 0.5;
-            word.vy = (Math.sin(angle) * force * impactFactor) + word.vy * 0.5;
-
-            // Limit maximum speed
-            const maxSpeed = 15;
-            const currentSpeed = Math.sqrt(word.vx * word.vx + word.vy * word.vy);
-            if (currentSpeed > maxSpeed) {
-                word.vx = (word.vx / currentSpeed) * maxSpeed;
-                word.vy = (word.vy / currentSpeed) * maxSpeed;
-            }
-        }
+        });
     });
 }
 
-// Handle window resize
-window.addEventListener('resize', () => {
-    const viewport = getViewportSize();
-    words.forEach(word => {
-        word.x = Math.min(word.x, viewport.width - 100);
-        word.y = Math.min(word.y, viewport.height - 100);
-    });
+startButton.addEventListener('click', () => {
+    startButton.style.display = 'none';
+    isPlaying = true;
+    initGame();
+    requestAnimationFrame(moveWords);
 });
+
+document.addEventListener('touchstart', handleTouch);
+document.addEventListener('touchmove', handleTouch);
