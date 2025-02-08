@@ -9,6 +9,7 @@ canvas.height = window.innerHeight;
 // Game objects
 const bearEmoji = '🐻'; // Bear emoji
 const heartEmoji = '❤️'; // Heart emoji
+const exitEmoji = '🏁'; // Exit flag emoji
 const rainbowEmojis = ['🌈', '🌈', '🌈', '🌈']; // Rainbow emojis for the win effect
 
 // Labyrinth design (simplified, adjust as needed)
@@ -19,7 +20,7 @@ const maze = [
     [1,0,0,0,1,1,0,1],
     [1,0,1,1,0,0,0,1],
     [1,0,1,0,0,1,1,1],
-    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0], // Exit here
     [1,1,1,1,1,1,1,1]
 ];
 const cellSize = 50; // Size of each cell in the maze
@@ -51,6 +52,9 @@ function animate() {
     
     // Draw hearts
     hearts.forEach(heart => drawEmoji(heartEmoji, heart.x, heart.y));
+
+    // Draw exit
+    if (!gameWon) drawEmoji(exitEmoji, exit.x, exit.y);
 
     // Check win condition
     if (bear.x === exit.x && bear.y === exit.y && !gameWon) {
@@ -84,6 +88,7 @@ function showWin() {
 
     // Flashing "POLINOCHKA"
     setInterval(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas for text
         ctx.fillStyle = colors[colorIndex];
         ctx.font = `${canvas.height / 2}px Arial`;
         ctx.textAlign = "center";
@@ -92,16 +97,18 @@ function showWin() {
         colorIndex = (colorIndex + 1) % colors.length;
     }, 100);
 
-    // Rainbow effect when touching the screen
+    // Rainbow effect when touching the screen after winning
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        for (let i = 0; i < 20; i++) {
-            setTimeout(() => {
-                let x = Math.random() * canvas.width;
-                let y = Math.random() * canvas.height;
-                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-                ctx.fillText(rainbowEmojis[Math.floor(Math.random() * rainbowEmojis.length)], x, y);
-            }, i * 50);
+        if (gameWon) {
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    let x = Math.random() * canvas.width;
+                    let y = Math.random() * canvas.height;
+                    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                    ctx.fillText(rainbowEmojis[Math.floor(Math.random() * rainbowEmojis.length)], x, y);
+                }, i * 50);
+            }
         }
     });
 }
