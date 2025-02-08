@@ -4,7 +4,29 @@ const ctx = canvas.getContext('2d');
 let video;
 let stream;
 let words = [];
-const pastelColors = ['#b3e5fc', '#81d4fa', '#ffccbc', '#c8e6c9']; // Голубой, синий, оранжевый, зеленый
+const pastelColors = ['#b3e5fc', '#81d4fa', '#ffccbc', '#c8e6c9'];
+
+// Добавим простой детектор лица (упрощенный вариант)
+function detectFace() {
+    const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let faceY = canvas.height / 2; // Простое предположение, что лицо примерно в центре
+
+    // Простой алгоритм определения цвета кожи для нахождения лица
+    for (let y = 0; y < frame.height; y += 5) {
+        for (let x = 0; x < frame.width; x += 5) {
+            let index = (x + y * frame.width) * 4;
+            let r = frame.data[index];
+            let g = frame.data[index + 1];
+            let b = frame.data[index + 2];
+            if (r > 95 && g > 40 && b > 20 && r > g && r > b && Math.abs(r - g) > 15) {
+                faceY = y;
+                break;
+            }
+        }
+        if (faceY !== canvas.height / 2) break;
+    }
+    return { x: canvas.width / 2, y: faceY }; // Возвращаем примерное положение лица
+}
 
 function init() {
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -45,14 +67,25 @@ function update() {
     if (video) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Обновляем позиции слов
+        // Обновляем слова
         words.forEach(word => {
             word.x += word.dx;
             word.y += word.dy;
 
-            // Отскакивание от границ экрана
+            // Отскок от границ
             if (word.x < 0 || word.x > canvas.width) word.dx = -word.dx;
             if (word.y < 0 || word.y > canvas.height) word.dy = -word.dy;
+
+            // Взаимодействие с лицом
+            let face = detectFace();
+            let dx = word.x - face.x;
+            let dy = word.y - face.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 100) { // Примерное расстояние взаимодействия
+                let angle = Math.atan2(dy, dx);
+                word.dx = Math.cos(angle) * 5;
+                word.dy = Math.sin(angle) * 5;
+            }
 
             ctx.font = `${word.size}px Arial`;
             ctx.fillStyle = word.color;
@@ -64,21 +97,3 @@ function update() {
 }
 
 init();
-
-// Детектирование лица для взаимодействия (упрощенно)
-document.addEventListener('mousemove', function(event) {
-    let x = event.clientX;
-    let y = event.clientY;
-    
-    words.forEach(word => {
-        let dx = word.x - x;
-        let dy = word.y - y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < 100) { // Примерное расстояние для взаимодействия
-            let angle = Math.atan2(dy, dx);
-            word.dx = Math.cos(angle) * 5;
-            word.dy = Math.sin(angle) * 5;
-        }
-    });
-});
