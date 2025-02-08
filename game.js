@@ -3,7 +3,7 @@ const ctx = canvas.getContext('2d');
 
 let video; // will hold the video element
 let stream; // will hold the stream from getUserMedia 
-console.log("laaaaaa: ");
+console.log("laaaaeeeaa: ");
 
 function init() {
     // Request access to webcam
