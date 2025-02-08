@@ -3,137 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polinochka Bounce</title>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <title>Face Bounce Game</title>
+    <!-- Import face-api.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/face-api.min.js"></script>
+    <!-- Your game code -->
+    <script src="game.js" defer></script>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: black;
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            background: #1a1a1a;
         }
         video {
+            transform: scaleX(-1);
+        }
+        .word {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 150px;
-            height: auto;
-            opacity: 1;
-            background: gray;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+        #startButton {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas"></canvas>
-    <script>
-        const words = [];
-        const colors = ["red", "blue", "yellow", "green", "purple", "orange"];
-        const sizes = [30, 40, 50, 60, 70];
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const video = document.getElementById("video");
-        let model;
-
-        async function init() {
-            try {
-                console.log("Loading face detection model...");
-                model = await blazeface.load();
-                console.log("Model loaded successfully");
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                video.play();
-                console.log("Camera stream started");
-                
-                resizeCanvas();
-                generateWords();
-                requestAnimationFrame(update);
-            } catch (error) {
-                console.error("Error initializing the game:", error);
-                alert("Camera access failed. Please allow camera permissions.");
-            }
-        }
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        function generateWords() {
-            for (let i = 0; i < 5; i++) {
-                words.push({
-                    text: "polinochka",
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    dx: (Math.random() - 0.5) * 4,
-                    dy: (Math.random() - 0.5) * 4,
-                    size: sizes[Math.floor(Math.random() * sizes.length)],
-                    color: colors[Math.floor(Math.random() * colors.length)]
-                });
-            }
-        }
-
-        async function update() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (model && video.readyState === 4) {
-                try {
-                    const predictions = await model.estimateFaces(video, false);
-                    if (predictions.length > 0) {
-                        const { topLeft, bottomRight } = predictions[0];
-                        if (topLeft && bottomRight) {
-                            const faceX = (topLeft[0] + bottomRight[0]) / 2;
-                            const faceY = (topLeft[1] + bottomRight[1]) / 2;
-                            detectCollisions(faceX, faceY);
-                        }
-                    }
-                } catch (error) {
-                    console.error("Face detection error:", error);
-                }
-            }
-            moveWords();
-            drawWords();
-            requestAnimationFrame(update);
-        }
-
-        function moveWords() {
-            words.forEach(word => {
-                word.x += word.dx;
-                word.y += word.dy;
-                if (word.x < 0 || word.x + word.size * 3 > canvas.width) word.dx *= -1;
-                if (word.y < 0 || word.y + word.size > canvas.height) word.dy *= -1;
-            });
-        }
-
-        function detectCollisions(faceX, faceY) {
-            words.forEach(word => {
-                const dx = word.x - faceX;
-                const dy = word.y - faceY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < word.size) {
-                    word.dx = -word.dx;
-                    word.dy = -word.dy;
-                }
-            });
-        }
-
-        function drawWords() {
-            words.forEach(word => {
-                ctx.font = `${word.size}px Arial`;
-                ctx.fillStyle = word.color;
-                ctx.fillText(word.text, word.x, word.y);
-            });
-        }
-
-        window.addEventListener("resize", resizeCanvas);
-        init();
-    </script>
+    <video id="video" width="720" height="560" autoplay muted></video>
+    <button id="startButton">Start Game</button>
 </body>
 </html>
