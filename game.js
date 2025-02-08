@@ -2,7 +2,8 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let video; // will hold the video element
-let stream; // will hold the stream from getUserMedia
+let stream; // will hold the stream from getUserMedia 
+console.log("laaaaaa: ");
 
 function init() {
     // Request access to webcam
