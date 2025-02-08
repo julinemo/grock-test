@@ -6,96 +6,141 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-// Words setup
-const words = [];
-const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
-const heartEmoji = '❤️'; // Unicode for heart emoji
+// Game objects
+const bearEmoji = '🐻'; // Bear emoji
+const heartEmoji = '❤️'; // Heart emoji
+const rainbowEmojis = ['🌈', '🌈', '🌈', '🌈']; // Rainbow emojis for the win effect
 
-// Create words
-for (let i = 0; i < 10; i++) {
-    words.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 2, // Velocity x
-        vy: (Math.random() - 0.5) * 2, // Velocity y
-        color: colors[Math.floor(Math.random() * colors.length)],
-        trail: [] // Array to hold the trail of heart emojis
-    });
-}
+// Labyrinth design (simplified, adjust as needed)
+const maze = [
+    [1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,1],
+    [1,1,1,0,1,1,0,1],
+    [1,0,0,0,1,1,0,1],
+    [1,0,1,1,0,0,0,1],
+    [1,0,1,0,0,1,1,1],
+    [1,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1]
+];
+const cellSize = 50; // Size of each cell in the maze
 
-let drawingWord = null;
+// Bear's position
+let bear = {x: 1, y: 1, collectedHearts: 0};
+
+// Hearts placement (example)
+let hearts = [{x: 3, y: 1}, {x: 6, y: 3}];
+
+// Exit position
+const exit = {x: 6, y: 6};
+
+// Game state
+let gameWon = false;
+
+// Color for walls
+const wallColor = '#444';
 
 // Animation loop
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Move and wrap words
-    words.forEach(word => {
-        word.x += word.vx;
-        word.y += word.vy;
-        
-        if (word.x < 0 || word.x > canvas.width) word.vx = -word.vx;
-        if (word.y < 0 || word.y > canvas.height) word.vy = -word.vy;
-        
-        // Draw the word
-        ctx.fillStyle = word.color;
-        ctx.font = "30px Arial";
-        ctx.fillText("polinochka", word.x, word.y);
+    // Draw maze
+    drawMaze();
 
-        // Draw heart trail
-        word.trail.forEach(([x, y]) => {
-            ctx.fillText(heartEmoji, x, y);
-        });
-    });
+    // Draw bear
+    drawEmoji(bearEmoji, bear.x, bear.y);
+    
+    // Draw hearts
+    hearts.forEach(heart => drawEmoji(heartEmoji, heart.x, heart.y));
+
+    // Check win condition
+    if (bear.x === exit.x && bear.y === exit.y && !gameWon) {
+        gameWon = true;
+        showWin();
+    }
 
     requestAnimationFrame(animate);
 }
 
+function drawMaze() {
+    for (let y = 0; y < maze.length; y++) {
+        for (let x = 0; x < maze[y].length; x++) {
+            if (maze[y][x] === 1) { // Wall
+                ctx.fillStyle = wallColor;
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+}
+
+function drawEmoji(emoji, x, y) {
+    ctx.font = `${cellSize * 0.8}px Arial`;
+    ctx.fillText(emoji, x * cellSize + cellSize / 4, y * cellSize + cellSize * 0.8);
+}
+
+function showWin() {
+    const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+    let colorIndex = 0;
+    let rainbowCount = 0;
+
+    // Flashing "POLINOCHKA"
+    setInterval(() => {
+        ctx.fillStyle = colors[colorIndex];
+        ctx.font = `${canvas.height / 2}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("POLINOCHKA", canvas.width / 2, canvas.height / 2);
+        colorIndex = (colorIndex + 1) % colors.length;
+    }, 100);
+
+    // Rainbow effect when touching the screen
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => {
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.fillText(rainbowEmojis[Math.floor(Math.random() * rainbowEmojis.length)], x, y);
+            }, i * 50);
+        }
+    });
+}
+
 canvas.addEventListener('touchstart', handleTouchStart, false);
 canvas.addEventListener('touchmove', handleTouchMove, false);
-canvas.addEventListener('touchend', handleTouchEnd, false);
 
 function handleTouchStart(e) {
     e.preventDefault();
     let touch = e.touches[0];
-    let touchX = touch.clientX;
-    let touchY = touch.clientY;
-    words.forEach(word => {
-        if (Math.abs(touchX - word.x) < 50 && Math.abs(touchY - word.y) < 30) { // Simple hit detection
-            drawingWord = word;
-            word.trail.push([word.x, word.y]); // Start the trail
-        }
-    });
+    let touchX = touch.clientX / cellSize | 0; // Integer division
+    let touchY = touch.clientY / cellSize | 0;
+    if (maze[touchY][touchX] === 0) {
+        bear.x = touchX;
+        bear.y = touchY;
+        checkHeartCollection();
+    }
 }
 
 function handleTouchMove(e) {
     e.preventDefault();
-    if (drawingWord) {
-        let touch = e.touches[0];
-        let newX = touch.clientX;
-        let newY = touch.clientY;
-        
-        // Only add a new heart if it's far enough from the last one
-        let lastHeart = drawingWord.trail[drawingWord.trail.length - 1];
-        if (!lastHeart || Math.hypot(newX - lastHeart[0], newY - lastHeart[1]) >= 30) { // Approximate size of one heart emoji
-            drawingWord.trail.push([newX, newY]);
-        }
-        drawingWord.x = newX;
-        drawingWord.y = newY;
+    let touch = e.touches[0];
+    let touchX = touch.clientX / cellSize | 0;
+    let touchY = touch.clientY / cellSize | 0;
+    if (maze[touchY][touchX] === 0) {
+        bear.x = touchX;
+        bear.y = touchY;
+        checkHeartCollection();
     }
 }
 
-function handleTouchEnd(e) {
-    e.preventDefault();
-    drawingWord = null;
+function checkHeartCollection() {
+    for (let i = hearts.length - 1; i >= 0; i--) {
+        if (hearts[i].x === bear.x && hearts[i].y === bear.y) {
+            hearts.splice(i, 1); // Remove heart
+            bear.collectedHearts++;
+        }
+    }
 }
 
-// Clear button functionality
-document.getElementById('clearButton').addEventListener('click', () => {
-    words.forEach(word => {
-        word.trail = []; // Clear the trail of each word
-    });
-});
-
-// Start the animation
+// Start the game loop
 animate();
