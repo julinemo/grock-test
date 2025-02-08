@@ -19,10 +19,18 @@
             width: 100%;
             height: 100%;
         }
+        video {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 100px;
+            height: auto;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
-    <video id="video" autoplay playsinline style="display:none;"></video>
+    <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
     <script>
         const words = [];
@@ -32,25 +40,26 @@
         const ctx = canvas.getContext("2d");
         const video = document.getElementById("video");
         let model;
-        
+
         async function init() {
-            model = await blazeface.load();
-            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+            try {
+                model = await blazeface.load();
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 video.play();
-            }).catch(error => {
-                console.error("Error accessing webcam:", error);
-            });
-            resizeCanvas();
-            generateWords();
-            requestAnimationFrame(update);
+                resizeCanvas();
+                generateWords();
+                requestAnimationFrame(update);
+            } catch (error) {
+                console.error("Error initializing the game:", error);
+            }
         }
-        
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
-        
+
         function generateWords() {
             for (let i = 0; i < 5; i++) {
                 words.push({
@@ -64,10 +73,10 @@
                 });
             }
         }
-        
+
         async function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (model) {
+            if (model && video.readyState === 4) {
                 const predictions = await model.estimateFaces(video, false);
                 if (predictions.length > 0) {
                     const { topLeft, bottomRight } = predictions[0];
@@ -82,7 +91,7 @@
             drawWords();
             requestAnimationFrame(update);
         }
-        
+
         function moveWords() {
             words.forEach(word => {
                 word.x += word.dx;
@@ -91,7 +100,7 @@
                 if (word.y < 0 || word.y + word.size > canvas.height) word.dy *= -1;
             });
         }
-        
+
         function detectCollisions(faceX, faceY) {
             words.forEach(word => {
                 const dx = word.x - faceX;
@@ -103,7 +112,7 @@
                 }
             });
         }
-        
+
         function drawWords() {
             words.forEach(word => {
                 ctx.font = `${word.size}px Arial`;
@@ -111,7 +120,7 @@
                 ctx.fillText(word.text, word.x, word.y);
             });
         }
-        
+
         window.addEventListener("resize", resizeCanvas);
         init();
     </script>
