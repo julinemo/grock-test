@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Touch Bounce Game</title>
+    <title>Touch Drawing Game</title>
     <style>
         * {
             margin: 0;
@@ -29,6 +29,11 @@
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            transition: opacity 1s;
+        }
+
+        .trail {
+            opacity: 0.6;
         }
 
         #startButton {
@@ -44,10 +49,26 @@
             border-radius: 10px;
             cursor: pointer;
         }
+
+        #clearButton {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <button id="startButton">Start Game</button>
+    <button id="clearButton">Clear Trails</button>
     <script src="game.js"></script>
 </body>
 </html>

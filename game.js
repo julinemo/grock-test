@@ -1,6 +1,9 @@
 let words = [];
+let trails = [];
 let isPlaying = false;
+let touchedWord = null;
 const startButton = document.getElementById('startButton');
+const clearButton = document.getElementById('clearButton');
 
 function getViewportSize() {
     return {
@@ -9,19 +12,21 @@ function getViewportSize() {
     };
 }
 
-function createWord(x, y) {
+function createWord(x, y, isTrail = false, color = null, size = null) {
     const word = {
         x: x,
         y: y,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-        element: document.createElement('div')
+        vx: isTrail ? 0 : (Math.random() - 0.5) * 2,
+        vy: isTrail ? 0 : (Math.random() - 0.5) * 2,
+        element: document.createElement('div'),
+        color: color || `hsl(${Math.random() * 360}, 100%, 50%)`,
+        size: size || `${20 + Math.random() * 30}px`
     };
 
-    word.element.className = 'word';
+    word.element.className = 'word' + (isTrail ? ' trail' : '');
     word.element.textContent = 'polinochka';
-    word.element.style.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-    word.element.style.fontSize = `${20 + Math.random() * 30}px`;
+    word.element.style.color = word.color;
+    word.element.style.fontSize = word.size;
     
     document.body.appendChild(word.element);
     return word;
@@ -37,6 +42,8 @@ function initGame() {
         const word = createWord(x, y);
         words.push(word);
     }
+
+    clearButton.style.display = 'block';
 }
 
 function moveWords() {
@@ -58,11 +65,9 @@ function moveWords() {
             word.y = Math.max(0, Math.min(word.y, viewport.height - 100));
         }
 
-        // Apply some friction
         word.vx *= 0.99;
         word.vy *= 0.99;
 
-        // Ensure minimum speed
         const minSpeed = 0.5;
         const speed = Math.sqrt(word.vx * word.vx + word.vy * word.vy);
         if (speed < minSpeed) {
@@ -73,31 +78,64 @@ function moveWords() {
         word.element.style.transform = `translate(${word.x}px, ${word.y}px)`;
     });
 
+    // Fade out and remove old trails
+    trails = trails.filter(trail => {
+        trail.opacity = (trail.opacity || 1) - 0.005;
+        if (trail.opacity <= 0) {
+            trail.element.remove();
+            return false;
+        }
+        trail.element.style.opacity = trail.opacity;
+        return true;
+    });
+
     requestAnimationFrame(moveWords);
 }
 
-function handleTouch(event) {
-    event.preventDefault();
-    
-    Array.from(event.touches).forEach(touch => {
-        const touchX = touch.clientX;
-        const touchY = touch.clientY;
-
-        words.forEach(word => {
-            const dx = word.x - touchX;
-            const dy = word.y - touchY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < 150) {
-                const angle = Math.atan2(dy, dx);
-                const force = 15;
-                const impactFactor = 1 - (distance / 150);
-                
-                word.vx = Math.cos(angle) * force * impactFactor;
-                word.vy = Math.sin(angle) * force * impactFactor;
-            }
-        });
+function findTouchedWord(x, y) {
+    return words.find(word => {
+        const dx = word.x - x;
+        const dy = word.y - y;
+        return Math.sqrt(dx * dx + dy * dy) < 50;
     });
+}
+
+function handleTouchStart(event) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    touchedWord = findTouchedWord(touch.clientX, touch.clientY);
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    
+    if (touchedWord) {
+        // Create trail at touch position
+        const trail = createWord(
+            touch.clientX, 
+            touch.clientY, 
+            true, 
+            touchedWord.color, 
+            touchedWord.size
+        );
+        trails.push(trail);
+
+        // Limit trail length
+        if (trails.length > 50) {
+            const oldTrail = trails.shift();
+            oldTrail.element.remove();
+        }
+    }
+}
+
+function handleTouchEnd() {
+    touchedWord = null;
+}
+
+function clearTrails() {
+    trails.forEach(trail => trail.element.remove());
+    trails = [];
 }
 
 startButton.addEventListener('click', () => {
@@ -107,5 +145,8 @@ startButton.addEventListener('click', () => {
     requestAnimationFrame(moveWords);
 });
 
-document.addEventListener('touchstart', handleTouch);
-document.addEventListener('touchmove', handleTouch);
+clearButton.addEventListener('click', clearTrails);
+
+document.addEventListener('touchstart', handleTouchStart);
+document.addEventListener('touchmove', handleTouchMove);
+document.addEventListener('touchend', handleTouchEnd);
