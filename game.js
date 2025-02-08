@@ -93,8 +93,8 @@ function showWin() {
     // Flashing "POLINOCHKA"
     let flashingInterval = setInterval(() => {
         ctx.fillStyle = colors[colorIndex];
-        // Further reduced the font size
-        ctx.font = `${Math.min(canvas.width, canvas.height) / 6}px Arial`; // Changed from /4 to /6
+        // Adjusted the font size to make it smaller
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 7}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("POLINOCHKA", canvas.width / 2, canvas.height / 2);
