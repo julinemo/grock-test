@@ -9,7 +9,62 @@
     <!-- Load your game script after face-api -->
     <script defer src="game.js"></script>
     <style>
-        /* ... keep existing styles ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+        }
+        
+        #video {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        .word {
+            position: fixed !important;
+            user-select: none;
+            pointer-events: none;
+            will-change: transform;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        
+        #startButton {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            z-index: 30;
+        }
     </style>
 </head>
 <body>
