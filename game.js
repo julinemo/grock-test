@@ -42,26 +42,27 @@ const wallColor = '#444';
 
 // Animation loop
 function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw maze
-    drawMaze();
+    if (!gameWon) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw maze
+        drawMaze();
 
-    // Draw bear
-    drawEmoji(bearEmoji, bear.x, bear.y);
-    
-    // Draw hearts
-    hearts.forEach(heart => drawEmoji(heartEmoji, heart.x, heart.y));
+        // Draw bear
+        drawEmoji(bearEmoji, bear.x, bear.y);
+        
+        // Draw hearts
+        hearts.forEach(heart => drawEmoji(heartEmoji, heart.x, heart.y));
 
-    // Draw exit
-    if (!gameWon) drawEmoji(exitEmoji, exit.x, exit.y);
+        // Draw exit
+        drawEmoji(exitEmoji, exit.x, exit.y);
 
-    // Check win condition
-    if (bear.x === exit.x && bear.y === exit.y && !gameWon) {
-        gameWon = true;
-        showWin();
+        // Check win condition
+        if (bear.x === exit.x && bear.y === exit.y) {
+            gameWon = true;
+            showWin();
+        }
     }
-
     requestAnimationFrame(animate);
 }
 
@@ -86,11 +87,13 @@ function showWin() {
     let colorIndex = 0;
     let rainbowCount = 0;
 
+    // Clear the canvas and start the flashing effect
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     // Flashing "POLINOCHKA"
-    setInterval(() => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas for text
+    let flashingInterval = setInterval(() => {
         ctx.fillStyle = colors[colorIndex];
-        ctx.font = `${canvas.height / 2}px Arial`;
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 2}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("POLINOCHKA", canvas.width / 2, canvas.height / 2);
@@ -111,6 +114,11 @@ function showWin() {
             }
         }
     });
+
+    // Stop the flashing after some time if you want (optional)
+    setTimeout(() => {
+        clearInterval(flashingInterval);
+    }, 10000); // Stops after 10 seconds, adjust as needed
 }
 
 canvas.addEventListener('touchstart', handleTouchStart, false);
