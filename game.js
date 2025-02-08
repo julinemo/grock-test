@@ -64,8 +64,21 @@ startButton.addEventListener('click', async () => {
 
 async function startFaceDetection() {
     try {
-        await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-        await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+        // Wait for DOM content to load
+        if (document.readyState !== 'complete') {
+            await new Promise(resolve => window.addEventListener('load', resolve));
+        }
+        
+        // Wait a moment to ensure face-api is loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Load models from CDN
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.load('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/tiny_face_detector_model-weights_manifest.json'),
+            faceapi.nets.faceLandmark68Net.load('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/face_landmark_68_model-weights_manifest.json')
+        ]);
+
+        debug.textContent = "Face detection loaded successfully!";
         
         setInterval(async () => {
             if (!isPlaying) return;
@@ -75,7 +88,6 @@ async function startFaceDetection() {
             
             if (detections && detections[0]) {
                 const nose = detections[0].landmarks.getNose()[0];
-                // Scale coordinates to viewport
                 const viewport = getViewportSize();
                 const scaleX = viewport.width / video.videoWidth;
                 const scaleY = viewport.height / video.videoHeight;
@@ -84,6 +96,7 @@ async function startFaceDetection() {
         }, 100);
     } catch (err) {
         debug.textContent = "Error loading face detection: " + err.message;
+        console.error(err);
     }
 }
 

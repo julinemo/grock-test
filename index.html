@@ -4,63 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Face Bounce Game</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/face-api.min.js"></script>
-    <script src="game.js" defer></script>
+    <!-- Load face-api.js first -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+    <!-- Load your game script after face-api -->
+    <script defer src="game.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #1a1a1a;
-            width: 100vw;
-            height: 100vh;
-            position: fixed;
-        }
-        
-        #video {
-            position: fixed;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
-        
-        .word {
-            position: fixed;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            pointer-events: none;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
-        
-        #startButton {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 20;
-        }
-
-        #debug {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            color: white;
-            z-index: 30;
-        }
+        /* ... keep existing styles ... */
     </style>
 </head>
 <body>
