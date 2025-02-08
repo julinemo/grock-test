@@ -38,6 +38,8 @@
             navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
                 video.srcObject = stream;
                 video.play();
+            }).catch(error => {
+                console.error("Error accessing webcam:", error);
             });
             resizeCanvas();
             generateWords();
@@ -68,8 +70,12 @@
             if (model) {
                 const predictions = await model.estimateFaces(video, false);
                 if (predictions.length > 0) {
-                    const { x, y } = predictions[0].topLeft;
-                    detectCollisions(x + 30, y + 30);
+                    const { topLeft, bottomRight } = predictions[0];
+                    if (topLeft && bottomRight) {
+                        const faceX = (topLeft[0] + bottomRight[0]) / 2;
+                        const faceY = (topLeft[1] + bottomRight[1]) / 2;
+                        detectCollisions(faceX, faceY);
+                    }
                 }
             }
             moveWords();
