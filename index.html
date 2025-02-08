@@ -23,9 +23,10 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            width: 100px;
+            width: 150px;
             height: auto;
-            opacity: 0.5;
+            opacity: 1;
+            background: gray;
         }
     </style>
 </head>
@@ -43,15 +44,21 @@
 
         async function init() {
             try {
+                console.log("Loading face detection model...");
                 model = await blazeface.load();
+                console.log("Model loaded successfully");
+                
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 video.play();
+                console.log("Camera stream started");
+                
                 resizeCanvas();
                 generateWords();
                 requestAnimationFrame(update);
             } catch (error) {
                 console.error("Error initializing the game:", error);
+                alert("Camera access failed. Please allow camera permissions.");
             }
         }
 
@@ -77,14 +84,18 @@
         async function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (model && video.readyState === 4) {
-                const predictions = await model.estimateFaces(video, false);
-                if (predictions.length > 0) {
-                    const { topLeft, bottomRight } = predictions[0];
-                    if (topLeft && bottomRight) {
-                        const faceX = (topLeft[0] + bottomRight[0]) / 2;
-                        const faceY = (topLeft[1] + bottomRight[1]) / 2;
-                        detectCollisions(faceX, faceY);
+                try {
+                    const predictions = await model.estimateFaces(video, false);
+                    if (predictions.length > 0) {
+                        const { topLeft, bottomRight } = predictions[0];
+                        if (topLeft && bottomRight) {
+                            const faceX = (topLeft[0] + bottomRight[0]) / 2;
+                            const faceY = (topLeft[1] + bottomRight[1]) / 2;
+                            detectCollisions(faceX, faceY);
+                        }
                     }
+                } catch (error) {
+                    console.error("Face detection error:", error);
                 }
             }
             moveWords();
