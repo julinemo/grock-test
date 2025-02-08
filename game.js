@@ -2,21 +2,36 @@ let video = document.getElementById('video');
 let words = [];
 let isPlaying = false;
 const startButton = document.getElementById('startButton');
+const debug = document.getElementById('debug');
 
-// Create bouncing words
-function createWord() {
+function getViewportSize() {
     return {
-        x: Math.random() * (window.innerWidth - 100),
-        y: Math.random() * (window.innerHeight - 100),
-        velocityX: (Math.random() - 0.5) * 5,
-        velocityY: (Math.random() - 0.5) * 5,
+        width: Math.min(window.innerWidth, document.documentElement.clientWidth),
+        height: Math.min(window.innerHeight, document.documentElement.clientHeight)
+    };
+}
+
+function createWord() {
+    const viewport = getViewportSize();
+    return {
+        x: Math.random() * (viewport.width - 100),
+        y: Math.random() * (viewport.height - 100),
+        velocityX: (Math.random() - 0.5) * 3,
+        velocityY: (Math.random() - 0.5) * 3,
         element: document.createElement('div')
     };
 }
 
-// Initialize game
 function initGame() {
-    // Create 6 words
+    // Clear any existing words
+    words.forEach(word => {
+        if (word.element.parentNode) {
+            word.element.parentNode.removeChild(word.element);
+        }
+    });
+    words = [];
+
+    // Create new words
     for (let i = 0; i < 6; i++) {
         const word = createWord();
         word.element.className = 'word';
@@ -28,78 +43,103 @@ function initGame() {
     }
 }
 
-// Start camera
 startButton.addEventListener('click', async () => {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'user',
+                width: { ideal: window.innerWidth },
+                height: { ideal: window.innerHeight }
+            } 
+        });
         video.srcObject = stream;
         startButton.style.display = 'none';
         isPlaying = true;
         initGame();
         startFaceDetection();
     } catch (err) {
-        console.error("Error accessing camera:", err);
+        debug.textContent = "Error accessing camera: " + err.message;
     }
 });
 
-// Face detection setup
 async function startFaceDetection() {
-    await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-    await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-    
-    setInterval(async () => {
-        const detections = await faceapi.detectAllFaces(video, 
-            new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+    try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
         
-        if (detections && detections[0]) {
-            const nose = detections[0].landmarks.getNose()[0];
-            checkCollisions(nose._x, nose._y);
-        }
-    }, 100);
+        setInterval(async () => {
+            if (!isPlaying) return;
+            
+            const detections = await faceapi.detectAllFaces(video, 
+                new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+            
+            if (detections && detections[0]) {
+                const nose = detections[0].landmarks.getNose()[0];
+                // Scale coordinates to viewport
+                const viewport = getViewportSize();
+                const scaleX = viewport.width / video.videoWidth;
+                const scaleY = viewport.height / video.videoHeight;
+                checkCollisions(nose._x * scaleX, nose._y * scaleY);
+            }
+        }, 100);
+    } catch (err) {
+        debug.textContent = "Error loading face detection: " + err.message;
+    }
 }
 
-// Update word positions and check collisions
 function updatePositions() {
     if (!isPlaying) return;
 
+    const viewport = getViewportSize();
+    
     words.forEach(word => {
-        // Update position
         word.x += word.velocityX;
         word.y += word.velocityY;
 
         // Bounce off walls
-        if (word.x <= 0 || word.x >= window.innerWidth - 100) {
+        if (word.x <= 0 || word.x >= viewport.width - 100) {
             word.velocityX *= -1;
+            word.x = Math.max(0, Math.min(word.x, viewport.width - 100));
         }
-        if (word.y <= 0 || word.y >= window.innerHeight - 100) {
+        if (word.y <= 0 || word.y >= viewport.height - 100) {
             word.velocityY *= -1;
+            word.y = Math.max(0, Math.min(word.y, viewport.height - 100));
         }
 
-        // Update DOM element position
         word.element.style.transform = `translate(${word.x}px, ${word.y}px)`;
     });
 
     requestAnimationFrame(updatePositions);
 }
 
-// Check collisions with nose
 function checkCollisions(noseX, noseY) {
     words.forEach(word => {
         const dx = word.x - noseX;
         const dy = word.y - noseY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 50) { // Collision threshold
-            // Calculate bounce angle
+        if (distance < 70) { // Increased collision threshold
             const angle = Math.atan2(dy, dx);
-            const speed = Math.sqrt(word.velocityX * word.velocityX + 
-                                 word.velocityY * word.velocityY);
+            const speed = Math.sqrt(word.velocityX * word.velocityX + word.velocityY * word.velocityY);
             
             word.velocityX = Math.cos(angle) * speed * 1.2;
             word.velocityY = Math.sin(angle) * speed * 1.2;
+            
+            // Ensure minimum speed
+            const minSpeed = 2;
+            if (Math.abs(word.velocityX) < minSpeed) word.velocityX *= minSpeed / Math.abs(word.velocityX);
+            if (Math.abs(word.velocityY) < minSpeed) word.velocityY *= minSpeed / Math.abs(word.velocityY);
         }
     });
 }
 
-// Start animation loop
+// Handle window resize
+window.addEventListener('resize', () => {
+    const viewport = getViewportSize();
+    words.forEach(word => {
+        word.x = Math.min(word.x, viewport.width - 100);
+        word.y = Math.min(word.y, viewport.height - 100);
+    });
+});
+
 requestAnimationFrame(updatePositions);

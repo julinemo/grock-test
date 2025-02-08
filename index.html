@@ -2,28 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Face Bounce Game</title>
-    <!-- Import face-api.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/face-api.min.js"></script>
-    <!-- Your game code -->
     <script src="game.js" defer></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             margin: 0;
             overflow: hidden;
             background: #1a1a1a;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
         }
-        video {
+        
+        #video {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
             transform: scaleX(-1);
         }
+        
         .word {
-            position: absolute;
+            position: fixed;
             font-family: Arial, sans-serif;
             font-weight: bold;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
+        
         #startButton {
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -34,11 +51,21 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            z-index: 20;
+        }
+
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            z-index: 30;
         }
     </style>
 </head>
 <body>
-    <video id="video" width="720" height="560" autoplay muted></video>
+    <video id="video" playsinline autoplay muted></video>
     <button id="startButton">Start Game</button>
+    <div id="debug"></div>
 </body>
 </html>
